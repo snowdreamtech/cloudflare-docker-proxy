@@ -1,4 +1,4 @@
-import DOCS from './help.html'
+import DOCS from "./help.html";
 
 addEventListener("fetch", (event) => {
   event.passThroughOnException();
@@ -48,18 +48,41 @@ async function handleRequest(request) {
         status: 404,
       }
     );
-  } 
+  }
   // return docs
   if (url.pathname === "/") {
     return new Response(DOCS, {
       status: 200,
       headers: {
-        "content-type": "text/html"
-      }
+        "content-type": "text/html",
+      },
     });
   }
   const isDockerHub = upstream == registry_dockerHub;
   const authorization = request.headers.get("Authorization");
+
+  if (url.pathname == "/v1/search" && isDockerHub) {
+    const newUrl = new URL(index_dockerHub + "/v1/search");
+    newUrl.search = url.search;
+
+    const headers = new Headers();
+    if (authorization) {
+      headers.set("Authorization", authorization);
+    }
+
+    // check if need to authenticate
+    const resp = await fetch(newUrl.toString(), {
+      method: "GET",
+      headers: headers,
+      redirect: "follow",
+    });
+
+    if (resp.status === 401) {
+      return responseUnauthorized(url);
+    }
+    return resp;
+  }
+
   if (url.pathname == "/v2/") {
     const newUrl = new URL(upstream + "/v2/");
     const headers = new Headers();
